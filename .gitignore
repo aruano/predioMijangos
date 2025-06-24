@@ -1,22 +1,53 @@
-### AL ###
-#Template for AL projects for Dynamics 365 Business Central
-#launch.json folder
+# Backend (Java / Spring Boot)
+backend/target/
+backend/.idea/
+backend/.classpath
+backend/.project
+backend/.settings/
+backend/.mvn/
+backend/logs/
+backend/*.iml
+*.log
+
+# Web Frontend (Vaadin / React)
+web/node_modules/
+web/build/
+web/dist/
+web/.env
+web/.env.*
+web/.vscode/
+web/.idea/
+web/.DS_Store
+
+# Mobile Frontend (React Native)
+mobile/node_modules/
+mobile/android/build/
+mobile/ios/build/
+mobile/ios/Pods/
+mobile/.expo/
+mobile/.expo-shared/
+mobile/.env
+mobile/.env.*
+mobile/.vscode/
+mobile/.idea/
+mobile/.DS_Store
+
+# Base de datos / scripts
+db/*.bak
+db/*.tmp
+db/*.log
+
+# Otros comunes
+*.swp
+*~
+*.tmp
+.DS_Store
+Thumbs.db
+
+# System files
 .vscode/
-#Cache folder
-.alcache/
-#Symbols folder
-.alpackages/
-#Snapshots folder
-.snapshots/
-#Testing Output folder
-.output/
-#Extension App-file
-*.app
-#Rapid Application Development File
-rad.json
-#Translation Base-file
-*.g.xlf
-#License-file
-*.flf
-#Test results file
-TestResults.xml
+.idea/
+*.iml
+
+# Git ignore global
+!.gitignore
