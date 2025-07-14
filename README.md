@@ -1,34 +1,47 @@
-# Predio Mijangos â€“ Plataforma de GestiÃ³n Multiplataforma
+# Predio Mijangos – Plataforma de Gestión Multiplataforma
 
-**Proyecto de tesis de IngenierÃ­a en Sistemas**  
-GestiÃ³n de inventarios, ventas, compras y desmantelamiento de vehÃ­culos/repuestos.
+**Proyecto de tesis de Ingeniería en Sistemas**  
+Gestión de inventarios, ventas, compras, clientes, proveedores y desmantelamiento de vehículos/repuestos.
 
 ---
 
-## DescripciÃ³n General
+## Descripción General
 
-Este proyecto corresponde al desarrollo de una **plataforma multiplataforma** (web y mÃ³vil) para la gestiÃ³n integral de un predio automotriz y distribuidora de repuestos, abarcando inventarios, ventas, compras, clientes, proveedores, vehÃ­culos y procesos de desmantelamiento.
+Este proyecto es una **plataforma multiplataforma** (web y móvil) para la gestión integral de un predio automotriz y distribuidora de repuestos, cubriendo procesos de inventarios, ventas, compras, clientes, proveedores, vehículos y desmantelamiento, con enfoque profesional y seguridad robusta.
 
-**TecnologÃ­as principales:**
-- **Backend:** Java 17+, Spring Boot (microservicios)
+**Tecnologías principales:**
+- **Backend:** Java 17+, Spring Boot (microservicios, JWT Security)
 - **Frontend Web:** Vaadin
-- **Frontend MÃ³vil:** React Native
+- **Frontend Móvil:** React Native
 - **Base de datos:** MySQL 8+
-- **Infraestructura:** Local o Docker, pensado para despliegue en AWS a futuro
+- **Infraestructura:** Local o Docker (pensado para despliegue en AWS a futuro)
 
 ---
 
 ## Estructura del Monorepo
 
 predio-mijangos/
-â”‚
-â”œâ”€â”€ backend/ # API RESTful Spring Boot (Java)
-â”œâ”€â”€ web/ # Frontend web (Vaadin)
-â”œâ”€â”€ mobile/ # App mÃ³vil (React Native)
-â”œâ”€â”€ db/ # Scripts SQL, modelo ER, migraciones
-â”œâ”€â”€ docs/ # DocumentaciÃ³n y minutas
-â”œâ”€â”€ .gitignore
-â””â”€â”€ README.md
+??? backend/ # API RESTful Spring Boot (Java)
+??? web/ # Frontend web (Vaadin)
+??? mobile/ # App móvil (React Native)
+??? db/ # Scripts SQL, modelo ER, migraciones
+??? docs/ # Documentación, minutas y mockups
+??? .gitignore
+??? README.md
+
+
+---
+
+## Características Destacadas
+
+- **Arquitectura por capas y buenas prácticas.**
+- **Seguridad con Spring Security + JWT:**  
+  Control de acceso por roles (ADMIN, SUPERVISOR, VENDEDOR, SUPERVISOR_JEFE).
+- **Respuestas API estandarizadas:**  
+  Estructura JSON uniforme con `message`, `body`, `statusCode`, y `timestamp`.
+- **Estructura profesional de paquetes:**  
+  Separación clara de controllers, services, models, DTOs, repositories, exceptions, utilidades y configuración.
+- **Soporte para integración web y móvil desde el primer día.**
 
 ---
 
@@ -36,14 +49,14 @@ predio-mijangos/
 
 - **Java JDK 17+**
 - **Node.js 18+** (recomendado usar NVM)
-- **MySQL 8.x** (puedes usar Docker o instalaciÃ³n local)
+- **MySQL 8.x** (Docker o instalación local)
 - **NetBeans 15+** (para backend Java)
-- **Visual Studio Code** (para web y mÃ³vil)
-- **Docker Desktop** (opcional, para base de datos y despliegue rÃ¡pido)
+- **Visual Studio Code** (web y móvil)
+- **Docker Desktop** (opcional, para despliegue y base de datos)
 
 ---
 
-## GuÃ­a de InstalaciÃ³n y EjecuciÃ³n Local
+## Guía de Instalación y Ejecución Local
 
 ### 1. Clona el repositorio
 
@@ -51,36 +64,41 @@ git clone https://github.com/tuusuario/predio-mijangos.git
 cd predio-mijangos
 
 ### 2. Configura la base de datos (MySQL)
-Crea la base de datos predio_mijangos y el usuario con permisos adecuados.
+- Crea la base de datos predio_mijangos y el usuario con permisos.
+- Usa los scripts en la carpeta db/ para crear las tablas y poblar catálogos iniciales.
+- Ajusta la conexión en backend/src/main/resources/application.properties:
 
-Usa el script en db/ para crear las tablas iniciales.
-
-Ajusta la conexiÃ³n en backend/src/main/resources/application.properties:
 spring.datasource.url=jdbc:mysql://localhost:3306/predio_mijangos
 spring.datasource.username=predio_user
 spring.datasource.password=********
 
-### 3. Backend (Spring Boot)
+### 3. Ejecuta el Backend (Spring Boot)
 cd backend
-# En NetBeans o por terminal:
 ./mvnw spring-boot:run
+O abre el proyecto en NetBeans y ejecuta desde el IDE.
 
-### 4. Frontend Web (Vaadin)
+### 4. Ejecuta el Frontend Web (Vaadin)
 cd web
 npm install
 npm start
 
-### 5. App MÃ³vil (React Native)
+### 5. Ejecuta la App Móvil (React Native)
 cd mobile
 npm install
 npx expo start
-DocumentaciÃ³n y Soporte
-Checklist y cronograma de sprints
+## Seguridad y autenticación
+- Login y autenticación JWT:
+El endpoint /auth/login retorna un token seguro para el frontend.
 
-Mockups, casos de uso, y minutas en carpeta docs/
+- Control de acceso por roles:
+Rutas protegidas y acceso restringido según perfil.
 
----
+- Manejo global de excepciones y respuestas estándar.
 
-CrÃ©ditos y referencias acadÃ©micas
-Proyecto de tesis para la carrera de IngenierÃ­a en Sistemas.
-Predio Mijangos, Guatemala â€“ 2025.
+### Documentación y soporte
+- Checklist, cronograma de sprints, mockups, casos de uso y minutas: carpeta docs/
+- Modelo entidad-relación y scripts SQL: carpeta db/
+
+## Créditos y referencias académicas
+Proyecto de tesis para la carrera de Ingeniería en Sistemas
+Predio Mijangos, Guatemala – 2025
