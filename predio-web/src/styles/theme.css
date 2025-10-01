@@ -1,0 +1,58 @@
+/**
+ * THEME TOKENS — colores y escala global con Nunito Sans.
+ * Ajustado a tu mockup:
+ * - Fondo base #4880FF con blobs #568AFF.
+ * - Nunito Sans como fuente predeterminada.
+ */
+:root {
+  /* Paleta base */
+  --color-bg: #4880FF;        /* fondo azul principal */
+  --color-blob: #568AFF;      /* blobs/figuras sobre el fondo */
+  --color-surface: #ffffff;   /* tarjeta (login) */
+  --color-border: #e6e9f2;
+  --color-text: #111827;
+  --color-text-muted: #6b7280;
+  --color-error: #ef4444;
+
+  /* Marca botones */
+  --brand-500: #6E95FF;
+  --brand-600: #5C84FF;
+
+  /* Semáforo de notificaciones */
+  --success-500: #22c55e;
+  --success-600: #16a34a;
+
+  --info-500: #3b82f6;
+  --info-600: #2563eb;
+
+  --warning-500: #f59e0b;
+  --warning-600: #d97706;
+
+  --error-500: #ef4444;
+  --error-600: #dc2626;
+
+  /* Radios y sombras */
+  --card-radius: 24px;
+  --control-radius: 12px;
+  --shadow-xl: 0 20px 50px rgba(31,41,55,.20);
+  --shadow-md: 0 10px 20px rgba(31,41,55,.12);
+
+  /* Tipografía y espaciado */
+  --font-family: "Nunito Sans", ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-6: 24px; --space-8: 32px;
+
+  /* Transiciones */
+  --ease-standard: cubic-bezier(.22,.61,.36,1);
+  --dur-fast: 160ms;
+  --dur-medium: 220ms;
+  --dur-slow: 320ms;
+  
+}
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; }
+body {
+  margin: 0;
+  color: var(--color-text);
+  font-family: var(--font-family);   /* Nunito Sans */
+}
