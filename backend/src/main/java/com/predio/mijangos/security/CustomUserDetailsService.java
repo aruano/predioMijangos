@@ -1,33 +1,35 @@
 package com.predio.mijangos.security;
 
-import com.predio.mijangos.model.Usuario;
-import com.predio.mijangos.repository.UsuarioRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.userdetails.*;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import com.predio.mijangos.modules.security.domain.Usuario;
+import com.predio.mijangos.modules.security.repo.UsuarioRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import java.util.stream.Collectors;
-
+/**
+ * Carga usuario del dominio y lo adapta a UserDetails (DIP).
+ */
 @Service
+@RequiredArgsConstructor
 public class CustomUserDetailsService implements UserDetailsService {
 
-    @Autowired
-    private UsuarioRepository usuarioRepository;
+  private final UsuarioRepository usuarioRepository;
 
-    @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        Usuario usuario = usuarioRepository.findByUsuario(username)
-            .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado: " + username));
+  @Override
+  public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+    Usuario u = usuarioRepository.findByUsuario(username)
+        .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado"));
+    String[] authorities = u.getRoles().stream()
+        .map(r -> "ROLE_" + r.getNombre())
+        .toArray(String[]::new);
 
-        return new org.springframework.security.core.userdetails.User(
-            usuario.getUsuario(),
-            usuario.getPassword(),
-            usuario.isActivo(),
-            true, true, true,
-            usuario.getRoles().stream()
-                .map(rol -> new SimpleGrantedAuthority(rol.getNombre()))
-                .collect(Collectors.toSet())
-        );
-    }
+    return User.withUsername(u.getUsuario())
+        .password(u.getPassword())
+        .authorities(authorities)
+        .disabled(Boolean.FALSE.equals(u.getActivo()))
+        .build();
+  }
 }
