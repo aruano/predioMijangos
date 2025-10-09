@@ -1,0 +1,61 @@
+# ==============================================================================
+# PERFIL: PRODUCCIÓN
+# ==============================================================================
+
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 10
+  
+  jpa:
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+
+# Logging mínimo en producción
+logging:
+  level:
+    root: WARN
+    com.predio.mijangos: INFO
+    org.springframework.web: WARN
+    org.springframework.security: WARN
+    org.hibernate.SQL: WARN
+  file:
+    name: /var/log/predio-mijangos/app.log
+    max-size: 50MB
+    max-history: 90
+
+# Actuator limitado en producción
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized
+
+# Security endurecida
+server:
+  error:
+    include-message: never
+    include-stacktrace: never
+
+# JWT con refresh token habilitado
+app:
+  security:
+    jwt:
+      secret: ${JWT_SECRET}  # DEBE venir de AWS Secrets Manager
+      expiration-minutes: 480
+      refresh-expiration-minutes: 10080  # 7 días
+  
+  # CORS estricto
+  cors:
+    allowed-origins:
+      - https://prediomijangos.com
+      - https://app.prediomijangos.com
