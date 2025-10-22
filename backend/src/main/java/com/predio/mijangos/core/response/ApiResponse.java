@@ -85,7 +85,7 @@ public class ApiResponse<T> {
     }
 
     /**
-     * Crea una respuesta de recurso creado (201 CREATED).
+     * Crea una respuesta de recurso creado (201 CREATED) con mensaje personalizado.
      * 
      * @param message Mensaje descriptivo de la creación
      * @param data Datos del recurso creado
@@ -99,6 +99,17 @@ public class ApiResponse<T> {
                 .body(data)
                 .timestamp(LocalDateTime.now())
                 .build();
+    }
+
+    /**
+     * Crea una respuesta de recurso creado (201 CREATED) con mensaje por defecto.
+     * 
+     * @param data Datos del recurso creado
+     * @param <T> Tipo de los datos
+     * @return ApiResponse con status 201 y mensaje "Recurso creado exitosamente"
+     */
+    public static <T> ApiResponse<T> created(T data) {
+        return created("Recurso creado exitosamente", data);
     }
 
     /**

@@ -72,6 +72,9 @@ public class SecurityConfig {
                 
                 // Configurar autorización de requests
                 .authorizeHttpRequests(auth -> auth
+                        // Rutas públicas - Raíz de la API
+                        .requestMatchers("/", "/health").permitAll()
+                        
                         // Rutas públicas - Autenticación
                         .requestMatchers("/api/auth/**").permitAll()
                         

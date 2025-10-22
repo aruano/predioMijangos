@@ -9,8 +9,10 @@ import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedBy;
 import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.domain.Persistable;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
@@ -32,7 +34,7 @@ import java.time.LocalDateTime;
 @EntityListeners(AuditingEntityListener.class)
 @SQLDelete(sql = "UPDATE {h-schema}{h-table} SET deleted_at = NOW() WHERE id = ?")
 @Where(clause = "deleted_at IS NULL")
-public abstract class BaseEntity {
+public abstract class BaseEntity implements Persistable<Integer>, Serializable {
 
     /**
      * Fecha y hora de creación del registro.
@@ -72,6 +74,30 @@ public abstract class BaseEntity {
      */
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
+    
+    /**
+     * Método abstracto que debe ser implementado por cada entidad
+     * para devolver su ID.
+     * 
+     * @return ID de la entidad
+     */
+    @Override
+    public abstract Integer getId();
+    
+    /**
+     * Determina si la entidad es nueva (no persistida) o existente.
+     * Spring Data JPA usa este método para decidir si debe hacer INSERT o UPDATE.
+     * 
+     * Una entidad es nueva si:
+     * - Su ID es null (nunca ha sido persistida)
+     * 
+     * @return true si la entidad es nueva, false si ya existe en la BD
+     */
+    @Override
+    @Transient
+    public boolean isNew() {
+        return getId() == null;
+    }
 
     /**
      * Verifica si la entidad está marcada como eliminada (soft delete).
@@ -98,13 +124,4 @@ public abstract class BaseEntity {
     public void softDelete() {
         this.deletedAt = LocalDateTime.now();
     }
-
-    /**
-     * Verifica si la entidad es nueva (no persistida aún).
-     * Las clases hijas deben implementar este método basándose en su ID.
-     * 
-     * @return true si la entidad es nueva, false si ya está persistida
-     */
-    @Transient
-    public abstract boolean isNew();
 }

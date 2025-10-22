@@ -1,312 +1,257 @@
 package com.predio.mijangos.security.service;
 
-import com.predio.mijangos.core.exception.BusinessException;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import com.predio.mijangos.modules.usuarios.domain.RefreshToken;
+import com.predio.mijangos.modules.usuarios.domain.Usuario;
 
-import java.time.LocalDateTime;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Optional;
 
 /**
- * Servicio para gestión de Refresh Tokens.
+ * Servicio de gestión de Refresh Tokens.
  * 
- * Los refresh tokens permiten obtener nuevos access tokens sin necesidad
- * de volver a autenticarse con credenciales.
+ * <p>Maneja el ciclo de vida completo de los refresh tokens, incluyendo
+ * creación, validación, renovación y revocación.
  * 
- * Características:
- * - Mayor duración que los access tokens (7 días vs 8 horas)
- * - Un usuario puede tener múltiples refresh tokens activos (múltiples dispositivos)
- * - Se invalidan al cerrar sesión o cambiar contraseña
- * - Se almacenan de forma segura en la base de datos
+ * <p><b>Responsabilidades:</b>
+ * <ul>
+ *   <li>Crear refresh tokens asociados a usuarios y dispositivos</li>
+ *   <li>Validar tokens (expiración, revocación)</li>
+ *   <li>Revocar tokens individuales o todos los tokens de un usuario</li>
+ *   <li>Limpiar tokens expirados de la base de datos</li>
+ *   <li>Gestionar información de dispositivo y ubicación</li>
+ * </ul>
  * 
- * NOTA: Esta implementación usa un Map en memoria como almacenamiento temporal.
- * En producción, debe reemplazarse por una entidad RefreshToken en la BD.
+ * <p><b>Características de los refresh tokens:</b>
+ * <ul>
+ *   <li><b>Formato:</b> UUID aleatorio único</li>
+ *   <li><b>Duración:</b> 7 días (configurable)</li>
+ *   <li><b>Uso:</b> Renovar access tokens sin re-autenticación</li>
+ *   <li><b>Seguridad:</b> Almacenados en base de datos, no en JWT</li>
+ *   <li><b>Revocables:</b> Pueden invalidarse antes de expirar</li>
+ * </ul>
+ * 
+ * <p><b>Casos de uso:</b>
+ * <ul>
+ *   <li>Usuario hace login → Se crea refresh token</li>
+ *   <li>Access token expira → Se usa refresh token para renovarlo</li>
+ *   <li>Usuario hace logout → Se revoca refresh token</li>
+ *   <li>Cambio de contraseña → Se revocan todos los tokens del usuario</li>
+ *   <li>Tarea programada → Limpia tokens expirados de la BD</li>
+ * </ul>
  * 
  * @author Equipo Técnico Predio Mijangos
  * @version 1.0.0
  * @since Octubre 2025
+ * 
+ * @see RefreshToken
+ * @see com.predio.mijangos.security.service.AuthenticationService
  */
-@Service
-@RequiredArgsConstructor
-@Slf4j
-public class RefreshTokenService {
-
-    @Value("${jwt.refresh-expiration}")
-    private Long refreshTokenDurationMs;
-
-    // TODO: Reemplazar con RefreshTokenRepository cuando esté disponible
-    // private final RefreshTokenRepository refreshTokenRepository;
+public interface RefreshTokenService {
     
-    // Almacenamiento temporal en memoria (solo para desarrollo)
-    // ⚠️ ELIMINAR en producción - usar base de datos
-    private final Map<String, RefreshTokenData> tokenStore = new ConcurrentHashMap<>();
-
     /**
      * Crea un nuevo refresh token para un usuario.
      * 
-     * @param username Código de empleado del usuario
-     * @return Token generado (UUID)
-     */
-    @Transactional
-    public String createRefreshToken(String username) {
-        log.debug("Creando refresh token para usuario: {}", username);
-        
-        // Generar token único
-        String token = UUID.randomUUID().toString();
-        
-        // Calcular fecha de expiración
-        LocalDateTime expiryDate = LocalDateTime.now()
-                .plusSeconds(refreshTokenDurationMs / 1000);
-        
-        // TODO: Guardar en base de datos
-        /*
-        RefreshToken refreshToken = new RefreshToken();
-        refreshToken.setToken(token);
-        refreshToken.setUsername(username);
-        refreshToken.setExpiryDate(expiryDate);
-        refreshToken.setCreatedAt(LocalDateTime.now());
-        
-        refreshTokenRepository.save(refreshToken);
-        */
-        
-        // Implementación temporal en memoria
-        tokenStore.put(token, new RefreshTokenData(username, expiryDate));
-        
-        log.info("Refresh token creado para usuario: {}", username);
-        return token;
-    }
-
-    /**
-     * Valida un refresh token.
+     * <p>Genera un token UUID único y lo asocia al usuario proporcionado.
+     * Registra información del dispositivo y ubicación para auditoría
+     * y gestión de sesiones.
      * 
-     * @param token Refresh token a validar
-     * @return true si el token es válido, false en caso contrario
-     */
-    @Transactional(readOnly = true)
-    public boolean validateRefreshToken(String token) {
-        if (token == null || token.isEmpty()) {
-            return false;
-        }
-        
-        // TODO: Buscar en base de datos
-        /*
-        Optional<RefreshToken> refreshTokenOpt = refreshTokenRepository.findByToken(token);
-        
-        if (refreshTokenOpt.isEmpty()) {
-            return false;
-        }
-        
-        RefreshToken refreshToken = refreshTokenOpt.get();
-        
-        // Verificar si ha expirado
-        if (refreshToken.getExpiryDate().isBefore(LocalDateTime.now())) {
-            // Eliminar token expirado
-            refreshTokenRepository.delete(refreshToken);
-            return false;
-        }
-        
-        return true;
-        */
-        
-        // Implementación temporal en memoria
-        RefreshTokenData tokenData = tokenStore.get(token);
-        
-        if (tokenData == null) {
-            return false;
-        }
-        
-        if (tokenData.expiryDate.isBefore(LocalDateTime.now())) {
-            tokenStore.remove(token);
-            return false;
-        }
-        
-        return true;
-    }
-
-    /**
-     * Obtiene el username asociado a un refresh token.
+     * <p><b>Proceso:</b>
+     * <ol>
+     *   <li>Genera UUID único</li>
+     *   <li>Calcula fecha de expiración (7 días desde ahora)</li>
+     *   <li>Asocia al usuario, dispositivo e IP</li>
+     *   <li>Persiste en la base de datos</li>
+     *   <li>Retorna el token creado</li>
+     * </ol>
      * 
-     * @param token Refresh token
-     * @return Username del usuario
-     * @throws BusinessException Si el token no existe o ha expirado
-     */
-    @Transactional(readOnly = true)
-    public String getUsernameFromRefreshToken(String token) {
-        // TODO: Buscar en base de datos
-        /*
-        RefreshToken refreshToken = refreshTokenRepository.findByToken(token)
-                .orElseThrow(() -> new BusinessException("INVALID_REFRESH_TOKEN", 
-                        "Refresh token no encontrado"));
-        
-        if (refreshToken.getExpiryDate().isBefore(LocalDateTime.now())) {
-            refreshTokenRepository.delete(refreshToken);
-            throw new BusinessException("EXPIRED_REFRESH_TOKEN", 
-                    "Refresh token ha expirado");
-        }
-        
-        return refreshToken.getUsername();
-        */
-        
-        // Implementación temporal en memoria
-        RefreshTokenData tokenData = tokenStore.get(token);
-        
-        if (tokenData == null) {
-            throw new BusinessException("INVALID_REFRESH_TOKEN", 
-                    "Refresh token no encontrado");
-        }
-        
-        if (tokenData.expiryDate.isBefore(LocalDateTime.now())) {
-            tokenStore.remove(token);
-            throw new BusinessException("EXPIRED_REFRESH_TOKEN", 
-                    "Refresh token ha expirado");
-        }
-        
-        return tokenData.username;
-    }
-
-    /**
-     * Elimina un refresh token específico.
-     * Se usa al cerrar sesión.
+     * <p><b>Información registrada:</b>
+     * <ul>
+     *   <li><b>Usuario:</b> Relación con la entidad Usuario</li>
+     *   <li><b>Device Info:</b> User-Agent del navegador/app</li>
+     *   <li><b>IP Address:</b> Dirección IP del cliente</li>
+     *   <li><b>Created At:</b> Timestamp de creación</li>
+     *   <li><b>Expiry Date:</b> Timestamp de expiración (7 días)</li>
+     * </ul>
      * 
-     * @param token Refresh token a eliminar
-     */
-    @Transactional
-    public void deleteRefreshToken(String token) {
-        log.debug("Eliminando refresh token");
-        
-        // TODO: Eliminar de base de datos
-        /*
-        refreshTokenRepository.findByToken(token)
-                .ifPresent(refreshTokenRepository::delete);
-        */
-        
-        // Implementación temporal en memoria
-        tokenStore.remove(token);
-        
-        log.debug("Refresh token eliminado");
-    }
-
-    /**
-     * Elimina todos los refresh tokens de un usuario.
-     * Se usa al cambiar contraseña o por seguridad.
+     * <p><b>Uso típico:</b>
+     * <pre>
+     * RefreshToken token = refreshTokenService.createRefreshToken(
+     *     usuario,
+     *     request.getHeader("User-Agent"),
+     *     request.getRemoteAddr()
+     * );
+     * </pre>
      * 
-     * @param username Código de empleado del usuario
-     */
-    @Transactional
-    public void deleteAllUserRefreshTokens(String username) {
-        log.info("Eliminando todos los refresh tokens del usuario: {}", username);
-        
-        // TODO: Eliminar de base de datos
-        /*
-        List<RefreshToken> userTokens = refreshTokenRepository.findAllByUsername(username);
-        refreshTokenRepository.deleteAll(userTokens);
-        */
-        
-        // Implementación temporal en memoria
-        tokenStore.entrySet().removeIf(entry -> 
-                entry.getValue().username.equals(username));
-        
-        log.info("Refresh tokens eliminados para usuario: {}", username);
-    }
-
-    /**
-     * Elimina todos los refresh tokens expirados del sistema.
-     * Debe ejecutarse periódicamente (ej: tarea programada diaria).
-     */
-    @Transactional
-    public void deleteExpiredTokens() {
-        log.info("Limpiando refresh tokens expirados");
-        
-        // TODO: Eliminar de base de datos
-        /*
-        LocalDateTime now = LocalDateTime.now();
-        List<RefreshToken> expiredTokens = refreshTokenRepository
-                .findAllByExpiryDateBefore(now);
-        refreshTokenRepository.deleteAll(expiredTokens);
-        */
-        
-        // Implementación temporal en memoria
-        LocalDateTime now = LocalDateTime.now();
-        tokenStore.entrySet().removeIf(entry -> 
-                entry.getValue().expiryDate.isBefore(now));
-        
-        log.info("Refresh tokens expirados eliminados");
-    }
-
-    /**
-     * Cuenta los refresh tokens activos de un usuario.
-     * Útil para limitar el número de dispositivos simultáneos.
+     * @param usuario Usuario para el que se crea el token (no puede ser null)
+     * @param deviceInfo Información del dispositivo (User-Agent)
+     * @param ipAddress Dirección IP del cliente
+     * @return RefreshToken creado y persistido en la base de datos
      * 
-     * @param username Código de empleado del usuario
-     * @return Número de tokens activos
+     * @throws IllegalArgumentException si el usuario es null
      */
-    @Transactional(readOnly = true)
-    public long countUserActiveTokens(String username) {
-        // TODO: Contar en base de datos
-        /*
-        LocalDateTime now = LocalDateTime.now();
-        return refreshTokenRepository.countByUsernameAndExpiryDateAfter(username, now);
-        */
-        
-        // Implementación temporal en memoria
-        LocalDateTime now = LocalDateTime.now();
-        return tokenStore.values().stream()
-                .filter(data -> data.username.equals(username))
-                .filter(data -> data.expiryDate.isAfter(now))
-                .count();
-    }
-
+    RefreshToken createRefreshToken(Usuario usuario, String deviceInfo, String ipAddress);
+    
     /**
-     * Clase interna para almacenamiento temporal de datos del token.
-     * ⚠️ ELIMINAR cuando se implemente RefreshToken entity.
+     * Busca un refresh token por su valor de token.
+     * 
+     * <p>Realiza una búsqueda en la base de datos del token con el
+     * valor proporcionado. El token se busca independientemente de
+     * su estado (activo, revocado o expirado).
+     * 
+     * <p><b>Nota:</b> Este método solo busca el token, no valida
+     * su estado. Para validar, usar {@link #isTokenValid(RefreshToken)}.
+     * 
+     * @param token Valor del token (UUID) a buscar
+     * @return Optional con el RefreshToken si existe, Optional.empty() si no
+     * 
+     * @see #isTokenValid(RefreshToken)
      */
-    private static class RefreshTokenData {
-        final String username;
-        final LocalDateTime expiryDate;
-
-        RefreshTokenData(String username, LocalDateTime expiryDate) {
-            this.username = username;
-            this.expiryDate = expiryDate;
-        }
-    }
+    Optional<RefreshToken> findByToken(String token);
+    
+    /**
+     * Verifica si un refresh token es válido para uso.
+     * 
+     * <p>Un token es válido si cumple todas estas condiciones:
+     * <ul>
+     *   <li>No está revocado (revoked = false)</li>
+     *   <li>No ha expirado (expiryDate &gt; now)</li>
+     *   <li>El usuario asociado está activo</li>
+     * </ul>
+     * 
+     * <p><b>Estados posibles:</b>
+     * <table border="1">
+     *   <tr>
+     *     <th>Condición</th>
+     *     <th>Resultado</th>
+     *   </tr>
+     *   <tr>
+     *     <td>Token revocado</td>
+     *     <td>false - Token inválido</td>
+     *   </tr>
+     *   <tr>
+     *     <td>Token expirado</td>
+     *     <td>false - Token inválido</td>
+     *   </tr>
+     *   <tr>
+     *     <td>Usuario inactivo</td>
+     *     <td>false - Token inválido</td>
+     *   </tr>
+     *   <tr>
+     *     <td>Todo OK</td>
+     *     <td>true - Token válido</td>
+     *   </tr>
+     * </table>
+     * 
+     * <p><b>Uso típico:</b>
+     * <pre>
+     * Optional&lt;RefreshToken&gt; tokenOpt = findByToken(tokenValue);
+     * if (tokenOpt.isPresent() &amp;&amp; isTokenValid(tokenOpt.get())) {
+     *     // Token válido, proceder con renovación
+     * }
+     * </pre>
+     * 
+     * @param token RefreshToken a validar
+     * @return true si el token es válido para renovar access token, false en caso contrario
+     * 
+     * @throws IllegalArgumentException si token es null
+     */
+    boolean isTokenValid(RefreshToken token);
+    
+    /**
+     * Revoca un refresh token específico.
+     * 
+     * <p>Marca el token como revocado, impidiendo su uso futuro
+     * para renovar access tokens. Esta es una operación irreversible.
+     * 
+     * <p><b>Proceso:</b>
+     * <ol>
+     *   <li>Establece revoked = true</li>
+     *   <li>Establece revokedAt = timestamp actual</li>
+     *   <li>Persiste los cambios en la base de datos</li>
+     * </ol>
+     * 
+     * <p><b>Cuándo usar:</b>
+     * <ul>
+     *   <li>Usuario hace logout normal</li>
+     *   <li>Token comprometido detectado</li>
+     *   <li>Solicitud de cierre de sesión en dispositivo específico</li>
+     * </ul>
+     * 
+     * <p><b>Nota importante:</b><br>
+     * Revocar el refresh token NO invalida el access token JWT
+     * asociado. El access token seguirá siendo válido hasta su
+     * expiración natural (8 horas).
+     * 
+     * @param token RefreshToken a revocar
+     * 
+     * @throws IllegalArgumentException si token es null
+     */
+    void revokeToken(RefreshToken token);
+    
+    /**
+     * Revoca todos los refresh tokens de un usuario.
+     * 
+     * <p>Cierra todas las sesiones activas del usuario en todos
+     * los dispositivos, forzando un nuevo login en cada uno.
+     * 
+     * <p><b>Proceso:</b>
+     * <ol>
+     *   <li>Busca todos los tokens del usuario</li>
+     *   <li>Marca cada token como revocado</li>
+     *   <li>Establece revokedAt en cada uno</li>
+     *   <li>Persiste los cambios</li>
+     * </ol>
+     * 
+     * <p><b>Cuándo usar:</b>
+     * <ul>
+     *   <li>Usuario cambia su contraseña</li>
+     *   <li>Usuario solicita cerrar todas las sesiones</li>
+     *   <li>Sospecha de cuenta comprometida</li>
+     *   <li>Usuario deshabilitado por administrador</li>
+     * </ul>
+     * 
+     * <p><b>Uso típico:</b>
+     * <pre>
+     * // Después de cambiar contraseña
+     * usuarioService.cambiarPassword(userId, newPassword);
+     * refreshTokenService.revokeAllUserTokens(userId);
+     * </pre>
+     * 
+     * @param idUsuario ID del usuario cuyos tokens se revocarán
+     * 
+     * @throws IllegalArgumentException si idUsuario es null
+     */
+    void revokeAllUserTokens(Integer idUsuario);
+    
+    /**
+     * Elimina físicamente tokens expirados de la base de datos.
+     * 
+     * <p>Limpia tokens que ya expiraron para mantener la base de datos
+     * optimizada. Este método debe ejecutarse periódicamente mediante
+     * una tarea programada.
+     * 
+     * <p><b>Criterio de eliminación:</b><br>
+     * Se eliminan tokens donde {@code expiryDate < now()}
+     * 
+     * <p><b>Ventajas de la limpieza:</b>
+     * <ul>
+     *   <li>Reduce tamaño de la tabla TBL_Refresh_Token</li>
+     *   <li>Mejora rendimiento de consultas</li>
+     *   <li>Libera espacio en disco</li>
+     *   <li>Cumple con políticas de retención de datos</li>
+     * </ul>
+     * 
+     * <p><b>Configuración recomendada:</b>
+     * <pre>
+     * &#64;Scheduled(cron = "0 0 2 * * ?") // Todos los días a las 2 AM
+     * public void cleanupExpiredTokens() {
+     *     refreshTokenService.deleteExpiredTokens();
+     * }
+     * </pre>
+     * 
+     * <p><b>Nota:</b> Esta operación es segura ya que solo elimina
+     * tokens que de todas formas ya no son utilizables.
+     * 
+     * @return Número de tokens eliminados (útil para logging)
+     */
+    void deleteExpiredTokens();
 }
-
-/**
- * IMPORTANTE: Entidad RefreshToken para implementar en el módulo de seguridad/usuarios
- * 
- * @Entity
- * @Table(name = "TBL_Refresh_Token")
- * public class RefreshToken {
- *     
- *     @Id
- *     @GeneratedValue(strategy = GenerationType.IDENTITY)
- *     private Integer id;
- *     
- *     @Column(name = "token", nullable = false, unique = true, length = 255)
- *     private String token;
- *     
- *     @Column(name = "username", nullable = false, length = 50)
- *     private String username;
- *     
- *     @Column(name = "expiry_date", nullable = false)
- *     private LocalDateTime expiryDate;
- *     
- *     @Column(name = "created_at", nullable = false)
- *     private LocalDateTime createdAt;
- *     
- *     // Getters y Setters
- * }
- * 
- * // Repository
- * public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Integer> {
- *     Optional<RefreshToken> findByToken(String token);
- *     List<RefreshToken> findAllByUsername(String username);
- *     List<RefreshToken> findAllByExpiryDateBefore(LocalDateTime date);
- *     Long countByUsernameAndExpiryDateAfter(String username, LocalDateTime date);
- * }
- */

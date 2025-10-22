@@ -1,4 +1,4 @@
-package com.predio.mijangos.core.security.jwt;
+package com.predio.mijangos.security.jwt;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -32,10 +32,12 @@ import java.util.stream.Collectors;
  * - Verificar expiración
  * 
  * Configuración en application.yml:
- * jwt:
- *   secret: ${JWT_SECRET}
- *   expiration: 28800000  # 8 horas
- *   refresh-expiration: 10080  # 7 días
+ * app:
+ *   security:
+ *     jwt:
+ *       secret: ${JWT_SECRET}
+ *       expiration-minutes: 480  # 8 horas
+ *       refresh-expiration-minutes: 10080  # 7 días
  * 
  * @author Equipo Técnico Predio Mijangos
  * @version 1.0.0
@@ -45,14 +47,28 @@ import java.util.stream.Collectors;
 @Slf4j
 public class JwtUtil {
 
-    @Value("${jwt.secret}")
+    @Value("${app.security.jwt.secret}")
     private String secret;
 
-    @Value("${jwt.expiration}")
-    private Long expiration;
+    @Value("${app.security.jwt.expiration-minutes}")
+    private Long expirationMinutes;
 
-    @Value("${jwt.refresh-expiration}")
-    private Long refreshExpiration;
+    @Value("${app.security.jwt.refresh-expiration-minutes}")
+    private Long refreshExpirationMinutes;
+    
+    /**
+     * Obtiene el tiempo de expiración del token de acceso en milisegundos.
+     */
+    private Long getExpirationMillis() {
+        return expirationMinutes * 60 * 1000;
+    }
+    
+    /**
+     * Obtiene el tiempo de expiración del refresh token en milisegundos.
+     */
+    private Long getRefreshExpirationMillis() {
+        return refreshExpirationMinutes * 60 * 1000;
+    }
 
     /**
      * Genera la clave de firma para JWT.
@@ -133,7 +149,7 @@ public class JwtUtil {
                 .collect(Collectors.toList());
         claims.put("roles", roles);
         
-        return createToken(claims, userDetails.getUsername(), expiration);
+        return createToken(claims, userDetails.getUsername(), getExpirationMillis());
     }
 
     /**
@@ -150,7 +166,7 @@ public class JwtUtil {
                 .collect(Collectors.toList());
         extraClaims.put("roles", roles);
         
-        return createToken(extraClaims, userDetails.getUsername(), expiration);
+        return createToken(extraClaims, userDetails.getUsername(), getExpirationMillis());
     }
 
     /**
@@ -163,7 +179,7 @@ public class JwtUtil {
     public String generateRefreshToken(UserDetails userDetails) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("type", "refresh");
-        return createToken(claims, userDetails.getUsername(), refreshExpiration);
+        return createToken(claims, userDetails.getUsername(), getRefreshExpirationMillis());
     }
 
     /**
