@@ -113,7 +113,7 @@ INSERT INTO TBL_Pagina (id_modulo, nombre, descripcion, movil, icon_web, redirec
 INSERT INTO TBL_Rol (nombre, descripcion, admin, activo) VALUES
 ('ADMIN', 'Administrador con acceso total', TRUE, TRUE),
 ('SUPERVISOR', 'Supervisor con permisos de supervisión', FALSE, TRUE),
-('OFICINA', 'Personal operativo de logística', FALSE, TRUE),
+('OPERADOR', 'Personal operativo de logística', FALSE, TRUE),
 ('VENDEDOR', 'Vendedor con acceso a ventas', FALSE, TRUE),
 ('BODEGUERO', 'Encargado de bodega e inventario', FALSE, TRUE);
 

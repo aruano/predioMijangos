@@ -86,7 +86,7 @@ public final class SecurityConstants {
      * Rol de personal de oficina.
      * Acceso a funciones administrativas básicas.
      */
-    public static final String ROLE_OFICINA = "OFICINA";
+    public static final String ROLE_OPERADOR = "OPERADOR";
 
     /**
      * Rol de vendedor.
